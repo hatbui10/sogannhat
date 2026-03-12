@@ -406,8 +406,13 @@ flash(C)
 return 0
 }
 
-// 2 số <5
-if(b < 5 && c < 5) return 1
+    if(b==8 && c==3) 
+ {
+flash(B)
+flash(C)
+return 0
+ }
+
 
 if(b==5 && c==0){
 flash(B)
@@ -415,15 +420,20 @@ flash(C)
 return 0
 }
 
+    if( c == 9) 
+ {
+flash(C)
+return 1
+ }
+
+    // 2 số <5
+if(b < 5 && c < 5) return 1
+    
 // 1 số <5 và 1 số >5
 if((b <= 5 && c >= 5) || (b >= 5 && c <= 5)) return 1
 
 
-if( c == 9) 
- {
-flash(C)
-return 1
-}
+
 
 // ngoài 2 trường hợp trên
 return "BỎ QUA"
@@ -447,6 +457,7 @@ box.classList.remove("flash")
 
 </body>
 </html>
+
 
 
 
