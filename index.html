@@ -1,250 +1,176 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tool Chuẩn - Logic 5 Ô Sau</title>
-<style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #0f172a;
-    color: white;
-    max-width: 420px;
-    margin: auto;
-    padding: 10px;
-    text-align: center;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Dual Scanner Fix</title>
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc13fe;
+            --bg-dark: #020202;
+        }
 
-  .top-display {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin: 15px 0;
-  }
-  .top-display input {
-    width: 45px;
-    height: 45px;
-    border-radius: 8px;
-    border: 2px solid #38bdf8;
-    background: #ef4444; /* Đỏ */
-    color: white;
-    text-align: center;
-    font-size: 30px;
-    font-weight: bold;
-    outline: none;
-  }
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 30px 3px 0 3px; /* Đúng lề 30px trên, 3px 2 bên */
+            display: flex;
+            justify-content: center;
+        }
 
-  .input-section {
-    background: #1e293b;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #334155;
-    position: relative;
-  }
+        .main-frame {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+        }
 
-  #input50 {
-    width: 80px;
-    height: 60px;
-    font-size: 35px;
-    text-align: center;
-    border-radius: 10px;
-    border: 3px solid #f43f5e;
-    background: #0f172a;
-    color: #f43f5e;
-    font-weight: bold;
-    outline: none;
-  }
+        .box {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px 15px;
+            text-align: center;
+        }
 
-  /* Nút Xóa/Hoàn tác */
-  .btn-undo {
-    margin-top: 10px;
-    padding: 8px 15px;
-    background: #475569;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-  }
-  .btn-undo:active { background: #64748b; }
+        /* Nút bấm mới to và dễ bấm hơn */
+        .btn-trigger {
+            display: block;
+            width: 80%;
+            margin: 0 auto 20px auto;
+            background: transparent;
+            padding: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
+        }
 
-  #cell49 {
-    display: inline-block;
-    width: 45px;
-    height: 45px;
-    background: #fbbf24;
-    color: #000;
-    line-height: 45px;
-    border-radius: 6px;
-    font-weight: bold;
-    font-size: 22px;
-    margin-top: 10px;
-  }
+        .blue-btn { border: 2px solid var(--neon-blue); color: var(--neon-blue); box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }
+        .purple-btn { border: 2px solid var(--neon-purple); color: var(--neon-purple); box-shadow: 0 0 10px rgba(188, 19, 254, 0.2); }
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 4px;
-    margin-top: 10px;
-    direction: rtl; 
-  }
-  .cell {
-    height: 38px;
-    background: #334155;
-    border: 1px solid #475569;
-    line-height: 38px;
-    font-size: 16px;
-    font-weight: bold;
-    border-radius: 4px;
-    direction: ltr; 
-  }
+        .btn-trigger:hover { background: white; color: black; box-shadow: 0 0 20px white; }
 
-  .match-origin {
-    background: #ef4444 !important;
-    color: #ffffff !important;
-    border: 2px solid #ffffff;
-  }
+        .display-num {
+            font-size: 8rem;
+            font-weight: 900;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+            text-shadow: 0 0 20px currentColor;
+        }
 
-  .blink-gradient {
-    animation: gentleGradient 1.5s infinite alternate ease-in-out;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-  }
+        .countdown-text {
+            font-family: monospace;
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+        }
 
-  @keyframes gentleGradient {
-    0% { background: linear-gradient(135deg, #2563eb, #06b6d4); }
-    100% { background: linear-gradient(135deg, #7c3aed, #db2777); }
-  }
-</style>
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: #111;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar { height: 100%; width: 0%; transition: width 0.1s linear; }
+        .blue-bar { background: var(--neon-blue); }
+        .purple-bar { background: var(--neon-purple); }
+
+        /* Ẩn input file thật */
+        input[type="file"] { display: none !important; }
+    </style>
 </head>
 <body>
-<div>Gặp 01-21-51-44-70-60 bắt buộc đánh 00000</div>
-  <div>Gặp 11-22-41-99-987 bắt buộc đánh 11111</div>
-  <div>Gặp số 5 thì Bỏ qua</div>
-<div class="top-display" id="topRes"></div>
 
-<div class="input-section">
-  <div style="font-size: 12px; color: #94a3b8;">NHẬP Ô 50</div>
-  <input id="input50" type="tel" maxlength="1" autocomplete="off">
-  <br>
-  <button class="btn-undo" onclick="undo()">↩ Xóa nhập nhầm</button>
-  <br>
-  <div style="font-size: 12px; color: #94a3b8; margin-top: 10px;">Ô 49</div>
-  <div id="cell49">-</div>
-</div>
+    <div class="main-frame">
+        <div class="box">
+            <button class="btn-trigger blue-btn" onclick="document.getElementById('file1').click()">MỞ FILE 1 (7s)</button>
+            <input type="file" id="file1" accept=".txt" onchange="handleFile(this, 1)">
+            
+            <div id="num1" class="display-num" style="color: var(--neon-blue);">--</div>
+            <div class="countdown-text" id="time1">0.0s</div>
+            <div class="progress-container">
+                <div class="progress-bar blue-bar" id="bar1"></div>
+            </div>
+        </div>
 
-<div class="grid" id="mainGrid"></div>
+        <div class="box">
+            <button class="btn-trigger purple-btn" onclick="document.getElementById('file2').click()">MỞ FILE 2 (30s)</button>
+            <input type="file" id="file2" accept=".txt" onchange="handleFile(this, 2)">
+            
+            <div id="num2" class="display-num" style="color: var(--neon-purple);">--</div>
+            <div class="countdown-text" id="time2">0.0s</div>
+            <div class="progress-container">
+                <div class="progress-bar purple-bar" id="bar2"></div>
+            </div>
+        </div>
+    </div>
 
-<script>
-const input50 = document.getElementById("input50");
-const cell49 = document.getElementById("cell49");
-const mainGrid = document.getElementById("mainGrid");
-const topRes = document.getElementById("topRes");
+    <script>
+        const config = {
+            1: { digits: [], index: 0, interval: 7000, lastUpdate: 0, timer: null },
+            2: { digits: [], index: 0, interval: 30000, lastUpdate: 0, timer: null }
+        };
 
-let data48 = Array(48).fill(""); 
-let val49 = "";
-let topInputs = [];
+        function handleFile(input, id) {
+            const file = input.files[0];
+            if (!file) return;
 
-// Khởi tạo 5 ô kết quả trên cùng
-for(let i=0; i<5; i++) {
-  let inp = document.createElement("input");
-  inp.readOnly = true;
-  topRes.appendChild(inp);
-  topInputs.push(inp);
-}
-
-// Khởi tạo lưới 48 ô
-for(let i=0; i<48; i++) {
-  let d = document.createElement("div");
-  d.className = "cell";
-  d.id = "idx" + i;
-  mainGrid.appendChild(d);
-}
-
-function updateUI() {
-  // Cập nhật ô 49
-  cell49.innerText = val49 || "-";
-
-  // Cập nhật 48 ô dưới
-  for (let i = 0; i < 48; i++) {
-    const el = document.getElementById("idx" + i);
-    el.innerText = data48[i];
-    el.classList.remove("blink-gradient", "match-origin");
-  }
-
-  // Reset top display
-  topInputs.forEach(input => input.value = "");
-
-  // Chạy logic tìm kiếm
-  let foundIndex = -1;
-  for (let i = 0; i < 48; i++) {
-    if (data48[i] === val49 && val49 !== "") {
-      let hasEnoughData = true;
-      for (let k = 1; k <= 5; k++) {
-        let checkIdx = i - k;
-        if (checkIdx < 0 || data48[checkIdx] === "") {
-          hasEnoughData = false;
-          break;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                config[id].digits = text.replace(/\D/g, '').split('');
+                config[id].index = 0;
+                if (config[id].digits.length > 0) {
+                    config[id].lastUpdate = Date.now();
+                    if (config[id].timer) cancelAnimationFrame(config[id].timer);
+                    animate(id);
+                }
+            };
+            reader.readAsText(file);
         }
-      }
-      if (hasEnoughData) {
-        foundIndex = i;
-        break; 
-      }
-    }
-  }
 
-  if (foundIndex !== -1) {
-    document.getElementById("idx" + foundIndex).classList.add("match-origin");
-    for (let j = 1; j <= 5; j++) {
-      let rightIdx = foundIndex - j;
-      topInputs[j-1].value = data48[rightIdx];
-      document.getElementById("idx" + rightIdx).classList.add("blink-gradient");
-    }
-  }
-}
+        function animate(id) {
+            const item = config[id];
+            const now = Date.now();
+            const elapsed = now - item.lastUpdate;
+            const remaining = Math.max(0, item.interval - elapsed);
+            
+            // Cập nhật Progress Bar và Chữ số đếm ngược
+            const percent = (elapsed / item.interval) * 100;
+            document.getElementById(`bar${id}`).style.width = Math.min(percent, 100) + '%';
+            document.getElementById(`time${id}`).innerText = (remaining/1000).toFixed(1) + "s";
 
-// Hàm Hoàn tác (Sửa lỗi khi nhập nhầm)
-function undo() {
-  if (val49 === "") return; // Chưa có gì để xóa
-
-  // Trả giá trị ô 49 về giá trị mới nhất của hàng 48
-  val49 = data48[0];
-
-  // Đẩy hàng 48 ngược lại
-  for (let i = 0; i < 47; i++) {
-    data48[i] = data48[i+1];
-  }
-  data48[47] = ""; // Ô cuối cùng trống
-
-  updateUI();
-  input50.focus();
-}
-
-input50.addEventListener("input", function() {
-  const val = this.value.trim();
-  if (val === "") return;
-
-  // Dịch chuyển dữ liệu cũ sang phải
-  for (let i = 47; i > 0; i--) {
-    data48[i] = data48[i-1];
-  }
-  
-  // Giá trị cũ của ô 49 rơi xuống ô 0 của hàng 48
-  data48[0] = val49;
-  
-  // Giá trị mới nhập vào ô 49
-  val49 = val;
-
-  updateUI();
-  this.value = "";
-});
-
-// Luôn focus vào ô nhập
-document.body.addEventListener("click", (e) => {
-    if(e.target.tagName !== 'BUTTON') input50.focus();
-});
-input50.focus();
-</script>
+            // Kiểm tra đổi số
+            if (elapsed >= item.interval || (item.index === 0 && elapsed <= 20)) {
+                if (item.index < item.digits.length) {
+                    document.getElementById(`num${id}`).innerText = item.digits[item.index];
+                    item.index++;
+                    item.lastUpdate = now;
+                } else {
+                    document.getElementById(`num${id}`).innerText = "END";
+                    document.getElementById(`time${id}`).innerText = "DONE";
+                    return;
+                }
+            }
+            item.timer = requestAnimationFrame(() => animate(id));
+        }
+    </script>
 </body>
 </html>
