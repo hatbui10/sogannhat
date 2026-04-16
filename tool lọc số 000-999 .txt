@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VN168 PRO - CỘNG DỒN FILE</title>
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-yellow: #ffff00;
+            --neon-blue: #0088ff;
+            --bg-dark: #050505;
+            --card-bg: #111;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 30px 3px 0 3px; /* Quy tắc 3 cạnh */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 550px;
+            background: var(--card-bg);
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        h2 { text-align: center; color: var(--neon-cyan); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 15px;}
+
+        .file-zone {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn-select {
+            flex: 1;
+            padding: 15px;
+            background: #1a1a1a;
+            border: 1px dashed #444;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            color: var(--neon-cyan);
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .btn-run {
+            width: 100%;
+            padding: 15px;
+            background: var(--neon-cyan);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+        }
+
+        .file-list-info {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 15px;
+            background: #000;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #222;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .stat-box {
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #222;
+        }
+
+        .p1-c { color: var(--neon-yellow); }
+        .p2-c { color: var(--neon-blue); }
+        .p3-c { color: #888; }
+
+        .display-list {
+            background: #000;
+            border: 1px solid #222;
+            border-radius: 8px;
+            height: 220px;
+            overflow-y: auto;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .btn-dl {
+            background: transparent;
+            border: 1px solid;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>VN168 - GỘP FILE & XỬ LÝ</h2>
+
+    <div class="file-zone">
+        <label class="btn-select">
+            <input type="file" id="fileInput" style="display:none" accept=".txt" multiple>
+            + CHỌN THÊM FILE
+        </label>
+        <button class="btn-select" style="border-color: #ff4444; color: #ff4444;" onclick="resetAll()">LÀM MỚI</button>
+    </div>
+
+    <div class="file-list-info" id="fileStatus">Chưa có file nào được chọn.</div>
+
+    <button class="btn-run" onclick="startProcessing()">BẮT ĐẦU XỬ LÝ TẤT CẢ</button>
+
+    <div class="stats-grid">
+        <div class="stat-box"><div class="p1-c">P1 (6A)</div><div id="countP1">0</div></div>
+        <div class="stat-box"><div class="p2-c">P2 (6b)</div><div id="countP2">0</div></div>
+        <div class="stat-box"><div class="p3-c">P3 (TG)</div><div id="countP3">0</div></div>
+    </div>
+
+    <div class="header-row p1-c">DANH SÁCH P1 <button class="btn-dl p1-c" onclick="downloadPart('p1')">TẢI</button></div>
+    <div class="display-list p1-c" id="listP1"></div>
+
+    <div class="header-row p2-c">DANH SÁCH P2 <button class="btn-dl p2-c" onclick="downloadPart('p2')">TẢI</button></div>
+    <div class="display-list p2-c" id="listP2"></div>
+
+    <div class="header-row p3-c">DANH SÁCH P3 <button class="btn-dl p3-c" onclick="downloadPart('p3')">TẢI</button></div>
+    <div class="display-list p3-c" id="listP3"></div>
+</div>
+
+<script>
+    let combinedData = ""; // Biến chứa dữ liệu cộng dồn
+    let fileCount = 0;
+    let results = { p1: [], p2: [], p3: [] };
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const files = e.target.files;
+        if (files.length === 0) return;
+
+        fileCount += files.length;
+        document.getElementById('fileStatus').innerText = `Đã cộng dồn: ${fileCount} file. Sẵn sàng xử lý...`;
+
+        for (let file of files) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                // Cộng dồn nội dung vào biến chung
+                combinedData += event.target.result.replace(/\s+/g, '');
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    function startProcessing() {
+        if (!combinedData) return alert("Vui lòng chọn file trước!");
+        
+        results = { p1: [], p2: [], p3: [] };
+        document.getElementById('fileStatus').innerText = "Đang xử lý dữ liệu tổng hợp...";
+
+        // Quét từ 000-999
+        for (let i = 0; i <= 999; i++) {
+            let xxx = i.toString().padStart(3, '0');
+            let pos = combinedData.indexOf(xxx);
+            
+            if (pos === -1) continue;
+
+            let isP1 = false;
+            let isP2 = false;
+
+            // Kiểm tra TẤT CẢ các vị trí của xxx trong dữ liệu gộp
+            let currentPos = pos;
+            while (currentPos !== -1) {
+                let nextSix = combinedData.substring(currentPos + 3, currentPos + 9);
+                if (nextSix.length === 6) {
+                    let nums = nextSix.split('').map(Number);
+                    if (nums.every(n => n >= 5)) isP1 = true;
+                    if (nums.every(n => n < 5)) isP2 = true;
+                }
+                currentPos = combinedData.indexOf(xxx, currentPos + 1);
+            }
+
+            // Phân loại ưu tiên
+            if (isP1) results.p1.push(xxx);
+            else if (isP2) results.p2.push(xxx);
+            else results.p3.push(xxx);
+        }
+
+        updateUI();
+        document.getElementById('fileStatus').innerText = `Hoàn tất xử lý ${fileCount} file!`;
+    }
+
+    function updateUI() {
+        document.getElementById('countP1').innerText = results.p1.length;
+        document.getElementById('countP2').innerText = results.p2.length;
+        document.getElementById('countP3').innerText = results.p3.length;
+
+        document.getElementById('listP1').innerText = results.p1.join('\n');
+        document.getElementById('listP2').innerText = results.p2.join('\n');
+        document.getElementById('listP3').innerText = results.p3.join('\n');
+    }
+
+    function resetAll() {
+        combinedData = "";
+        fileCount = 0;
+        results = { p1: [], p2: [], p3: [] };
+        document.getElementById('fileStatus').innerText = "Đã làm mới bộ nhớ.";
+        updateUI();
+    }
+
+    function downloadPart(name) {
+        if (results[name].length === 0) return;
+        const blob = new Blob([results[name].join('\n')], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `VN168_GOP_${name.toUpperCase()}.txt`;
+        a.click();
+    }
+</script>
+
+</body>
+</html>
