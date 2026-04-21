@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phân Tích Số Liệu - Bản Chuẩn</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;600;800&display=swap');
+
+        :root {
+            --body-bg: #0a0a0c;
+            --card-bg: #16161e;
+            --input-bg: #1f1f29;
+            --text-main: #e1e1e6;
+            --primary: #3d5afe;
+            --gold: #ffcc00;
+            --green: #00e676;
+            --danger: #ff5252;
+            --cell-size: 35px; 
+            --stt-width: 45px;
+            --spacer-width: 10px;
+            --gap: 3px;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--body-bg);
+            color: var(--text-main);
+            margin: 0; padding: 10px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .container { width: 100%; max-width: 600px; }
+
+        #status-bar {
+            width: 100%; padding: 12px; border-radius: 8px;
+            margin-bottom: 12px; font-size: 13px; font-weight: 700;
+            text-align: center; display: none; border: 1px solid transparent;
+        }
+        .status-info { background: rgba(61, 90, 254, 0.1); color: var(--primary); border-color: var(--primary); }
+        .status-success { background: rgba(0, 230, 118, 0.2); color: var(--green); border-color: var(--green); }
+
+        .sticky-header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--body-bg); padding: 10px 0;
+            border-bottom: 2px solid #333; overflow: hidden;
+        }
+        .header-content { display: flex; width: max-content; padding-left: 5px; }
+
+        .controls {
+            background: var(--card-bg); border-radius: 12px;
+            padding: 15px; margin: 15px 0;
+            display: flex; flex-direction: column; gap: 15px;
+            border: 1px solid #2d2d3d;
+        }
+
+        .control-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+        .group { flex: 1; min-width: 80px; display: flex; flex-direction: column; gap: 5px; }
+        
+        label { font-size: 10px; color: #9494b8; font-weight: 800; text-transform: uppercase; }
+
+        input {
+            background: var(--input-bg); border: 1px solid #333;
+            border-radius: 6px; padding: 10px; color: white;
+            font-family: 'JetBrains Mono', monospace; font-size: 14px;
+        }
+
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        .main-btn {
+            border: none; padding: 12px; border-radius: 8px;
+            font-weight: 700; cursor: pointer; font-size: 12px;
+            text-transform: uppercase; transition: 0.3s;
+        }
+        .active-mode { outline: 2px solid white; outline-offset: 2px; transform: scale(0.98); }
+
+        #result-container {
+            width: 100%; background: #0d0d12;
+            border-radius: 12px; padding: 10px;
+            border: 1px solid #2d2d3d; overflow-x: auto;
+        }
+        .sync-grid { display: grid; gap: var(--gap); width: max-content; }
+
+        .number-box, .index-box, .row-stt {
+            width: var(--cell-size); height: var(--cell-size);
+            display: flex; justify-content: center; align-items: center;
+            font-weight: 700; border-radius: 5px; font-family: 'JetBrains Mono', monospace;
+        }
+
+        .row-stt { width: var(--stt-width) !important; background: var(--danger); color: white; font-size: 12px; }
+
+        .idx-0 { background: #ff4b1f; } .idx-1 { background: #0052D4; } 
+        .idx-2 { background: #8E2DE2; } .idx-3 { background: #11998e; }
+        .idx-4 { background: #f09819; } .idx-5 { background: #4568dc; }
+        .idx-6 { background: #D4145A; } .idx-7 { background: #009245; }
+        .idx-8 { background: #662D8C; } .idx-9 { background: #2E3192; }
+
+        .number-box { background: #1a1a24; color: #e1e1e6; border: 1px solid #2d2d3d; font-size: 16px; }
+        .high { background: var(--gold) !important; color: #000 !important; }
+        .low { background: var(--green) !important; color: #000 !important; }
+
+        /* NHẤP NHÁY SIÊU CHẬM (3 GIÂY) */
+        @keyframes ultraSoftBlink {
+            0% { background: #1a1a24; color: #e1e1e6; }
+            50% { background: var(--gold); color: #000; box-shadow: 0 0 20px var(--gold); }
+            100% { background: #1a1a24; color: #e1e1e6; }
+        }
+        .blink { 
+            animation: ultraSoftBlink 3s ease-in-out infinite; 
+            border: none !important; 
+            z-index: 5;
+        }
+
+        ::-webkit-scrollbar { height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="status-bar"></div>
+
+    <div class="sticky-header" id="headerWrapper">
+        <div class="header-content"><div id="header-grid" class="sync-grid"></div></div>
+    </div>
+
+    <div class="controls">
+        <div class="control-row">
+            <div class="group" style="flex: 2;">
+                <label>File Dữ Liệu</label>
+                <input type="file" id="fileInput" accept=".txt">
+            </div>
+            <button class="main-btn" style="background: #ff3d00; color: white; padding: 10px;" onclick="clearMemory()">DỌN CACHE</button>
+        </div>
+
+        <div class="control-row">
+            <div class="group">
+                <label>Số Cột (X)</label>
+                <input type="number" id="rowLength" value="2">
+            </div>
+            <div class="group">
+                <label>Bước Nhảy (K)</label>
+                <input type="number" id="stepK" value="1" min="1">
+            </div>
+        </div>
+
+        <div class="btn-grid">
+            <button id="btn-stepK" class="main-btn" style="background:var(--primary); color:white;" onclick="setMode('stepK')">SOI BƯỚC K</button>
+            <button id="btn-big" class="main-btn" style="background:var(--gold); color:#000;" onclick="setMode('big')">TÔ SỐ LỚN</button>
+            <button id="btn-small" class="main-btn" style="background:var(--green); color:#000;" onclick="setMode('small')">TÔ SỐ NHỎ</button>
+            <button id="btn-reset-view" class="main-btn" style="background:#444; color:white;" onclick="setMode('none')">TẮT MÀU</button>
+        </div>
+    </div>
+
+    <div id="result-container">
+        <div id="result-grid" class="sync-grid"></div>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const rowLengthInput = document.getElementById('rowLength');
+    const stepKInput = document.getElementById('stepK');
+    const statusBar = document.getElementById('status-bar');
+    const resultGrid = document.getElementById('result-grid');
+
+    let currentNumbers = [];
+
+    [rowLengthInput, stepKInput].forEach(el => {
+        el.addEventListener('input', () => { if(currentNumbers.length > 0) refreshAll(); });
+    });
+
+    window.onload = function() {
+        rowLengthInput.value = localStorage.getItem('userRowLength') || 2;
+        stepKInput.value = localStorage.getItem('userStepK') || 1;
+        const savedData = localStorage.getItem('userCurrentNumbers');
+        if (savedData) {
+            currentNumbers = JSON.parse(savedData);
+            refreshAll();
+        }
+        updateHeaderGrid();
+    };
+
+    function clearMemory() {
+        if(confirm("Xóa sạch dữ liệu và cài đặt?")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+
+    function showStatus(text, type) {
+        statusBar.textContent = text;
+        statusBar.className = 'status-' + type;
+        statusBar.style.display = 'block';
+    }
+
+    function setMode(mode) {
+        localStorage.setItem('userLastMode', mode);
+        document.querySelectorAll('.main-btn').forEach(btn => btn.classList.remove('active-mode'));
+        const activeBtn = document.getElementById('btn-' + mode);
+        if(activeBtn) activeBtn.classList.add('active-mode');
+        refreshAll();
+    }
+
+    function refreshAll() {
+        const x = parseInt(rowLengthInput.value) || 2;
+        const k = parseInt(stepKInput.value) || 1;
+        localStorage.setItem('userRowLength', x);
+        localStorage.setItem('userStepK', k);
+        updateHeaderGrid();
+        renderGrid(currentNumbers, x);
+    }
+
+    fileInput.addEventListener('change', function() {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const cleanText = e.target.result.replace(/[^0-9]/g, '');
+            currentNumbers = cleanText.split('').map(Number);
+            localStorage.setItem('userCurrentNumbers', JSON.stringify(currentNumbers));
+            refreshAll();
+        };
+        reader.readAsText(this.files[0]);
+    });
+
+    function updateHeaderGrid() {
+        const x = parseInt(rowLengthInput.value) || 2;
+        const headerGrid = document.getElementById('header-grid');
+        headerGrid.style.gridTemplateColumns = `var(--stt-width) var(--spacer-width) repeat(${x}, var(--cell-size))`;
+        headerGrid.innerHTML = '<div style="width:var(--stt-width)"></div><div style="width:var(--spacer-width)"></div>';
+        for (let i = 0; i < x; i++) {
+            const box = document.createElement('div');
+            box.className = `index-box idx-${i % 10}`;
+            box.textContent = i % 10;
+            headerGrid.appendChild(box);
+        }
+    }
+
+    function renderGrid(data, columns) {
+        resultGrid.innerHTML = '';
+        if (data.length === 0) return;
+        
+        const mode = localStorage.getItem('userLastMode') || 'stepK';
+        const k = parseInt(stepKInput.value) || 1;
+        
+        resultGrid.style.gridTemplateColumns = `var(--stt-width) var(--spacer-width) repeat(${columns}, var(--cell-size))`;
+        const rows = [];
+        for (let i = 0; i < data.length; i += columns) { rows.push(data.slice(i, i + columns)); }
+
+        const markMap = Array.from({ length: rows.length }, () => Array(columns).fill(''));
+        let matchCount = 0;
+
+        if (mode === 'stepK') {
+            for (let r = 0; r < rows.length - k; r++) {
+                const rowU = rows[r], rowL = rows[r + k];
+                // Chỉ kiểm tra khi cả 2 hàng đều đủ số cột
+                if (rowU.length === columns && rowL.length === columns) {
+                    let isStrictReverse = true;
+                    for (let c = 0; c < columns; c++) {
+                        // Logic: Lớn (>=5) và Nhỏ (<5)
+                        const isUHigh = rowU[c] >= 5;
+                        const isLHigh = rowL[c] >= 5;
+                        // Nếu 2 ô cùng loại (cùng Lớn hoặc cùng Nhỏ) thì hàng này không "ngược" hoàn toàn
+                        if (isUHigh === isLHigh) { 
+                            isStrictReverse = false; 
+                            break; 
+                        }
+                    }
+                    if (isStrictReverse) {
+                        matchCount++;
+                        for (let c = 0; c < columns; c++) { 
+                            markMap[r][c] = markMap[r+k][c] = 'blink'; 
+                        }
+                    }
+                }
+            }
+            showStatus(matchCount > 0 ? `Tìm thấy ${matchCount} cặp ngược nhau!` : "Không có cặp nào ngược.", matchCount > 0 ? "success" : "info");
+        }
+
+        const fragment = document.createDocumentFragment();
+        rows.forEach((rowData, rIndex) => {
+            const stt = document.createElement('div'); stt.className = 'row-stt'; stt.textContent = rIndex + 1;
+            fragment.appendChild(stt);
+            fragment.appendChild(document.createElement('div'));
+
+            rowData.forEach((num, cIndex) => {
+                const box = document.createElement('div');
+                box.className = 'number-box'; box.textContent = num;
+                if (markMap[rIndex][cIndex] === 'blink') box.classList.add('blink');
+                else if (mode === 'big' && num >= 5) box.classList.add('high');
+                else if (mode === 'small' && num < 5) box.classList.add('low');
+                fragment.appendChild(box);
+            });
+            for(let i = rowData.length; i < columns; i++) {
+                fragment.appendChild(document.createElement('div')).className = 'number-box';
+            }
+        });
+        resultGrid.appendChild(fragment);
+    }
+</script>
+</body>
+</html>
