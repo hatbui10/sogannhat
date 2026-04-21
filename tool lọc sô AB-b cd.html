@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Trích Xuất & Phân Loại</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --card: #1e1e1e;
+            --text: #e0e0e0;
+            --accent: #ffeb3b;
+            --border: #444;
+            --blue-hl: #007bff; /* Nền xanh dương */
+            --orange-hl: #ff9800; /* Nền cam */
+        }
+
+        body {
+            font-family: sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .selector-btns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button.active { background: var(--accent); color: #000; }
+
+        #input-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="number"] {
+            width: 55px;
+            height: 60px;
+            background: #252525;
+            border: 2px solid var(--border);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        input[type="number"]:focus { border-color: var(--accent); outline: none; }
+
+        .file-box {
+            border: 1px dashed #555;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        #file-info { font-size: 11px; color: #888; margin-top: 5px; }
+
+        #result {
+            margin-top: 20px;
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            color: #00ff00;
+            font-size: 18px;
+            line-height: 1.8;
+        }
+
+        .highlight-yellow {
+            background-color: var(--accent);
+            color: #000;
+            font-weight: bold;
+            padding: 0px 4px;
+            border-radius: 3px;
+        }
+
+        /* Logic highlight mới theo yêu cầu */
+        .bg-blue { background-color: var(--blue-hl); color: #fff; padding: 0 2px; border-radius: 2px; }
+        .bg-orange { background-color: var(--orange-hl); color: #000; padding: 0 2px; border-radius: 2px; }
+
+        .clear-btn {
+            background: #ff5252;
+            padding: 5px 10px;
+            font-size: 10px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11px; color: #777; text-transform: uppercase;">1. File nguồn</span>
+        <button class="clear-btn" onclick="clearAllData()">XÓA HẾT DỮ LIỆU CŨ</button>
+    </div>
+    
+    <div class="file-box">
+        <input type="file" id="fileInput" multiple accept=".txt" style="width: 100%;">
+        <div id="file-info">Chưa có dữ liệu.</div>
+    </div>
+
+    <div style="font-size: 11px; color: #777; margin-bottom: 5px; text-transform: uppercase;">2. Số lượng chữ số</div>
+    <div class="selector-btns">
+        <button onclick="updateMode(1)" id="m1">1 Ô</button>
+        <button onclick="updateMode(2)" id="m2">2 Ô</button>
+        <button onclick="updateMode(3)" id="m3">3 Ô</button>
+    </div>
+
+    <div id="input-container"></div>
+
+    <button onclick="runFilter()" style="width:100%; background: var(--accent); color: black; padding: 15px; border-radius: 8px; font-weight: bold;">XUẤT KẾT QUẢ</button>
+
+    <div id="result">Kết quả...</div>
+</div>
+
+<script>
+    let combinedData = "";
+
+    window.onload = function() {
+        const savedData = localStorage.getItem('myFileData');
+        if (savedData) {
+            combinedData = savedData;
+            document.getElementById('file-info').innerText = "Đã khôi phục dữ liệu.";
+            document.getElementById('file-info').style.color = "#4caf50";
+        }
+        const savedMode = localStorage.getItem('myMode') || 1;
+        updateMode(parseInt(savedMode));
+    };
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        Array.from(e.target.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (ev) => { 
+                combinedData += ev.target.result + "\n"; 
+                localStorage.setItem('myFileData', combinedData);
+                document.getElementById('file-info').innerText = "Đã tải & lưu dữ liệu!";
+                document.getElementById('file-info').style.color = "#4caf50";
+            };
+            reader.readAsText(file);
+        });
+    });
+
+    function clearAllData() {
+        if(confirm("Xóa sạch dữ liệu đã lưu?")) {
+            localStorage.clear();
+            combinedData = "";
+            location.reload();
+        }
+    }
+
+    function updateMode(n) {
+        localStorage.setItem('myMode', n);
+        const container = document.getElementById('input-container');
+        container.innerHTML = "";
+        [1,2,3].forEach(i => document.getElementById('m'+i).className = (i==n ? 'active' : ''));
+        for (let i = 0; i < n; i++) {
+            const inp = document.createElement('input');
+            inp.type = "number";
+            inp.inputMode = "numeric";
+            inp.className = "single-input";
+            inp.addEventListener('input', function() {
+                if (this.value.length > 1) this.value = this.value.slice(-1);
+                if (this.value.length === 1) {
+                    const next = this.nextElementSibling;
+                    if (next) next.focus();
+                }
+            });
+            inp.addEventListener('keydown', function(e) {
+                if (e.key === "Backspace" && this.value === "") {
+                    const prev = this.previousElementSibling;
+                    if (prev) prev.focus();
+                }
+            });
+            container.appendChild(inp);
+        }
+    }
+
+    function runFilter() {
+        const inputs = document.querySelectorAll('.single-input');
+        const ab = Array.from(inputs).map(i => i.value).join("");
+        const resBox = document.getElementById('result');
+        
+        if (!combinedData) { alert("Chưa có dữ liệu!"); return; }
+        if (ab === "" || ab.length < inputs.length) { alert("Nhập đủ số!"); return; }
+
+        let resultSet = new Set();
+        let pos = 0;
+        let cleanData = combinedData.replace(/\s+/g, '');
+
+        while ((pos = cleanData.indexOf(ab, pos)) !== -1) {
+            let bIndex = pos + ab.length;
+            let bChar = cleanData.charAt(bIndex);
+            
+            if (bChar !== "") {
+                let bVal = parseInt(bChar);
+                let x5Str = cleanData.substring(bIndex + 1, bIndex + 6);
+                
+                if (x5Str.length === 5) {
+                    let d = x5Str.split('').map(Number);
+                    let isSatisfied = false;
+
+                    // Logic cũ giữ nguyên
+                    if (bVal >= 5) {
+                        let cond1 = (d[0] >= 5 || d[1] >= 5);
+                        let cond2 = (d[2] < 5 || d[3] < 5 || d[4] < 5);
+                        if (cond1 || cond2) isSatisfied = true;
+                    } else {
+                        let cond1 = (d[0] < 5 || d[1] < 5);
+                        let cond2 = (d[2] >= 5 || d[3] >= 5 || d[4] >= 5);
+                        if (cond1 || cond2) isSatisfied = true;
+                    }
+
+                    // --- BỔ SUNG LOGIC HIGHLIGHT CHO BCD ---
+                    let bcdClass = "";
+                    if (bVal >= 5 && d[0] < 5 && d[1] < 5) {
+                        bcdClass = "bg-blue";
+                    } else if (bVal < 5 && d[0] >= 5 && d[1] >= 5) {
+                        bcdClass = "bg-orange";
+                    }
+
+                    let bPart = bChar;
+                    let cPart = x5Str[0];
+                    let dPart = x5Str[1];
+                    let bcdDisplay = bcdClass ? `<span class="${bcdClass}">${bPart}${cPart}${dPart}</span>` : `${bPart}${cPart}${dPart}`;
+                    // ---------------------------------------
+
+                    let p3 = cleanData.substring(bIndex + 1, bIndex + 4); 
+                    let p4 = cleanData.substring(bIndex + 4, bIndex + 8); 
+                    
+                    let lineOutput = "";
+                    if (isSatisfied) {
+                        // Kết quả dạng: AB - bcd - e fghk (đúng 10 số như code gốc)
+                        lineOutput = `${ab}-${bcdDisplay}${x5Str[2]} ${p4}`;
+                    } else {
+                        // Giữ nguyên logic tô màu vàng gốc
+                        lineOutput = `${ab}-${bChar}<span class="highlight-yellow">${x5Str}</span>${cleanData.substring(bIndex + 6, bIndex + 8)}`;
+                    }
+                    
+                    resultSet.add(lineOutput);
+                }
+            }
+            pos += 1;
+        }
+
+        const finalArray = Array.from(resultSet);
+        resBox.innerHTML = finalArray.length > 0 ? finalArray.join('\n') : "Không tìm thấy chuỗi '" + ab + "'";
+    }
+</script>
+
+</body>
+</html>
