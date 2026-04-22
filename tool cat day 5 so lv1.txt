@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tim T1klv3 - Updated Colors</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;600;800&display=swap');
+
+        :root {
+            --body-bg: #0a0a0c; --card-bg: #16161e; --input-bg: #1f1f29;
+            --text-main: #e1e1e6; --primary: #3d5afe; --gold: #ffcc00;
+            --green: #00e676; --danger: #ff5252; --cell-size: 35px; 
+            --stt-width: 45px; --spacer-width: 10px; --gap: 3px;
+            --sky-blue: #00d2ff; /* Màu xanh da trời cho hàng R */
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif; background-color: var(--body-bg);
+            color: var(--text-main); margin: 0; padding: 10px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .container { width: 100%; max-width: 650px; }
+
+        #status-bar {
+            width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 12px;
+            font-size: 13px; font-weight: 700; text-align: center; display: none; border: 1px solid transparent;
+        }
+        .status-info { background: rgba(61, 90, 254, 0.1); color: var(--primary); border-color: var(--primary); }
+        .status-success { background: rgba(0, 230, 118, 0.2); color: var(--green); border-color: var(--green); }
+
+        #search-results {
+            background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px;
+            border: 1px solid #333; max-height: 180px; overflow-y: auto; display: none; width: 100%;
+        }
+        .result-item {
+            display: inline-block; padding: 6px 12px; background: #222; border-radius: 6px;
+            margin: 3px; font-size: 11px; cursor: pointer; border: 1px solid #444; transition: 0.2s;
+        }
+        .result-item:hover { background: var(--primary); color: white; border-color: white; }
+        .result-item b { color: var(--gold); }
+
+        .sticky-header {
+            position: sticky; top: 0; z-index: 100; background: var(--body-bg);
+            padding: 10px 0; border-bottom: 2px solid #333; 
+            overflow: hidden;
+        }
+        .header-content { display: flex; width: max-content; padding-left: 10px; }
+
+        .controls {
+            background: var(--card-bg); border-radius: 12px; padding: 15px; margin: 15px 0;
+            display: flex; flex-direction: column; gap: 12px; border: 1px solid #2d2d3d;
+        }
+
+        .control-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+        .group { flex: 1; min-width: 80px; display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 10px; color: #9494b8; font-weight: 800; text-transform: uppercase; }
+        input {
+            background: var(--input-bg); border: 1px solid #333; border-radius: 6px;
+            padding: 10px; color: white; font-family: 'JetBrains Mono', monospace; font-size: 14px;
+            width: 100%;
+        }
+        input[readonly] { background: #12121a; color: var(--gold); border-color: #444; cursor: default; }
+
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .main-btn {
+            border: none; padding: 10px; border-radius: 6px; font-weight: 700;
+            cursor: pointer; font-size: 11px; text-transform: uppercase; transition: 0.2s;
+        }
+        .active-mode { box-shadow: 0 0 10px var(--primary); border: 1px solid white !important; }
+
+        #result-container {
+            width: 100%; background: #0d0d12; border-radius: 12px; padding: 10px;
+            border: 1px solid #2d2d3d; overflow-x: auto;
+        }
+        .sync-grid { display: grid; gap: var(--gap); width: max-content; }
+
+        .number-box, .index-box, .row-stt {
+            width: var(--cell-size); height: var(--cell-size);
+            display: flex; justify-content: center; align-items: center;
+            font-weight: 700; border-radius: 4px; font-family: 'JetBrains Mono', monospace;
+        }
+        .row-stt { width: var(--stt-width) !important; background: var(--danger); color: white; font-size: 11px; }
+        .number-box { background: #1a1a24; color: #e1e1e6; border: 1px solid #2d2d3d; font-size: 16px; }
+        
+        /* Màu cho hàng R và R1 */
+        .row-r-base { background: var(--sky-blue) !important; color: #000 !important; }
+        .row-r1-found { background: var(--gold) !important; color: #000 !important; }
+
+        .high { background: var(--gold) !important; color: #000 !important; }
+        .low { background: var(--green) !important; color: #000 !important; }
+
+        .idx-box { border: 1px solid rgba(255,255,255,0.1); }
+        .idx-0 { background: #ff4b1f; } .idx-1 { background: #0052D4; } 
+        .idx-2 { background: #8E2DE2; } .idx-3 { background: #11998e; }
+        .idx-4 { background: #f09819; } .idx-5 { background: #4568dc; }
+        .idx-6 { background: #D4145A; } .idx-7 { background: #009245; }
+        .idx-8 { background: #662D8C; } .idx-9 { background: #2E3192; }
+
+        @keyframes ultraSoftBlink {
+            0% { background: #1a1a24; color: #e1e1e6; }
+            50% { background: var(--gold); color: #000; box-shadow: 0 0 15px var(--gold); }
+            100% { background: #1a1a24; color: #e1e1e6; }
+        }
+        .blink { animation: ultraSoftBlink 3s ease-in-out infinite; border: none !important; }
+
+        ::-webkit-scrollbar { height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="status-bar"></div>
+
+    <div id="search-results">
+        <label style="display:block; margin-bottom:10px;">BỘ SỐ PHÙ HỢP (u <= 3):</label>
+        <div id="list-items"></div>
+    </div>
+
+    <div class="sticky-header" id="header-wrapper">
+        <div class="header-content"><div id="header-grid" class="sync-grid"></div></div>
+    </div>
+
+    <div class="controls">
+        <div class="control-row">
+            <div class="group" style="flex: 2;">
+                <label>File Dữ Liệu</label>
+                <input type="file" id="fileInput" accept=".txt">
+            </div>
+            <div class="group" style="flex: 1;">
+                <label>Tổng Chữ Số</label>
+                <input type="text" id="totalChars" value="0" readonly>
+            </div>
+        </div>
+
+        <div class="control-row">
+            <button class="main-btn" style="flex:1; background: #6200ea; color: white;" onclick="autoSearchAll()">QUÉT BỘ SỐ</button>
+            <button class="main-btn" style="flex:1; background: #444; color: white;" onclick="clearData()">DỌN SẠCH</button>
+        </div>
+
+        <div class="control-row">
+            <div class="group"><label>Số Cột (X)</label><input type="number" id="rowLength" value="2" onchange="refresh()"></div>
+            <div class="group"><label>Bước Nhảy (K)</label><input type="number" id="stepK" value="1" onchange="refresh()"></div>
+        </div>
+
+        <div class="control-row">
+            <div class="group" style="flex: 1;">
+                <label>Ô G (STT Hàng R)</label>
+                <input type="number" id="inputG" placeholder="STT R...">
+            </div>
+            <div class="group" style="flex: 0.5;">
+                <label>Tìm Kiếm</label>
+                <button class="main-btn" style="background: var(--primary); color: white; height: 38px;" onclick="searchReverseG()">G1</button>
+            </div>
+            <div class="group" style="flex: 1;">
+                <label>Ô P (Khoảng Cách)</label>
+                <input type="text" id="outputP" readonly placeholder="...">
+            </div>
+        </div>
+
+        <div class="btn-grid">
+            <button id="btn-stepK" class="main-btn" style="background:var(--primary); color:white;" onclick="setMode('stepK')">SOI BƯỚC K</button>
+            <button id="btn-big" class="main-btn" style="background:var(--gold); color:#000;" onclick="setMode('big')">TÔ SỐ LỚN</button>
+            <button id="btn-small" class="main-btn" style="background:var(--green); color:#000;" onclick="setMode('small')">TÔ SỐ NHỎ</button>
+            <button id="btn-none" class="main-btn" style="background:#222; color:white;" onclick="setMode('none')">TẮT MÀU</button>
+        </div>
+    </div>
+
+    <div id="result-container">
+        <div id="result-grid" class="sync-grid"></div>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('fileInput'),
+          rowLengthInput = document.getElementById('rowLength'),
+          stepKInput = document.getElementById('stepK'),
+          totalCharsInput = document.getElementById('totalChars'),
+          statusBar = document.getElementById('status-bar'),
+          resultGrid = document.getElementById('result-grid'),
+          resultContainer = document.getElementById('result-container'),
+          headerWrapper = document.getElementById('header-wrapper'),
+          listItems = document.getElementById('list-items'),
+          searchResults = document.getElementById('search-results'),
+          inputG = document.getElementById('inputG'),
+          outputP = document.getElementById('outputP');
+
+    let currentNumbers = [];
+    let highlightR = -1;
+    let highlightR1 = -1;
+
+    resultContainer.addEventListener('scroll', () => {
+        headerWrapper.scrollLeft = resultContainer.scrollLeft;
+    });
+
+    function showStatus(text, type) {
+        statusBar.textContent = text; statusBar.className = 'status-' + type;
+        statusBar.style.display = 'block';
+    }
+
+    function clearData() {
+        if(confirm("Xóa toàn bộ dữ liệu đã lưu?")) { 
+            localStorage.clear(); 
+            location.reload(); 
+        }
+    }
+
+    window.onload = function() {
+        rowLengthInput.value = localStorage.getItem('userX') || 2;
+        stepKInput.value = localStorage.getItem('userK') || 1;
+        const savedNums = localStorage.getItem('userNums');
+        if (savedNums) { 
+            currentNumbers = JSON.parse(savedNums); 
+            totalCharsInput.value = currentNumbers.length;
+        }
+        const savedMode = localStorage.getItem('userMode') || 'stepK';
+        updateActiveButton(savedMode);
+        if (currentNumbers.length > 0) refresh();
+    };
+
+    fileInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            currentNumbers = event.target.result.replace(/[^0-9]/g, '').split('').map(Number);
+            totalCharsInput.value = currentNumbers.length;
+            localStorage.setItem('userNums', JSON.stringify(currentNumbers));
+            refresh();
+        };
+        reader.readAsText(file);
+    };
+
+    function updateActiveButton(mode) {
+        document.querySelectorAll('.main-btn').forEach(b => b.classList.remove('active-mode'));
+        const activeBtn = document.getElementById('btn-' + mode);
+        if (activeBtn) activeBtn.classList.add('active-mode');
+    }
+
+    function setMode(mode) {
+        highlightR = -1; highlightR1 = -1; outputP.value = '';
+        localStorage.setItem('userMode', mode);
+        updateActiveButton(mode);
+        refresh();
+    }
+
+    function refresh() {
+        const x = parseInt(rowLengthInput.value) || 2;
+        const k = parseInt(stepKInput.value) || 1;
+        localStorage.setItem('userX', x); 
+        localStorage.setItem('userK', k);
+        updateHeader(x); 
+        render(x, k);
+    }
+
+    function updateHeader(x) {
+        const grid = document.getElementById('header-grid');
+        grid.style.gridTemplateColumns = `var(--stt-width) var(--spacer-width) repeat(${x}, var(--cell-size))`;
+        grid.innerHTML = '<div class="row-stt" style="background:transparent; border:1px dashed #333"></div><div style="width:var(--spacer-width)"></div>';
+        for (let i = 0; i < x; i++) {
+            const box = document.createElement('div');
+            box.className = `index-box idx-${i % 10}`;
+            box.textContent = i % 10;
+            grid.appendChild(box);
+        }
+    }
+
+    function autoSearchAll() {
+        if (!currentNumbers.length) return alert("Vui lòng chọn file dữ liệu trước!");
+        listItems.innerHTML = ''; 
+        searchResults.style.display = 'block';
+        let found = 0;
+        for (let x = 2; x <= 9; x++) {
+            for (let k = 1; k <= 30; k++) {
+                const u = checkU(currentNumbers, x, k);
+                if (u >= 0 && u <= 1) {
+                    const item = document.createElement('div');
+                    item.className = 'result-item';
+                    item.innerHTML = `X:<b>${x}</b> | K:<b>${k}</b> (u=${u})`;
+                    item.onclick = () => { 
+                        rowLengthInput.value = x; 
+                        stepKInput.value = k; 
+                        refresh(); 
+                    };
+                    listItems.appendChild(item); found++;
+                }
+            }
+        }
+        showStatus(`Tìm thấy ${found} bộ số có u ≤ 1!`, "info");
+    }
+
+    function checkU(data, x, k) {
+        let u = 0; const rows = [];
+        for (let i = 0; i < data.length; i += x) rows.push(data.slice(i, i + x));
+        for (let r = 0; r < rows.length - k; r++) {
+            if (rows[r].length === x && rows[r+k].length === x) {
+                let isRev = true;
+                for (let c = 0; c < x; c++) { 
+                    if ((rows[r][c] >= 5) === (rows[r+k][c] >= 5)) { isRev = false; break; } 
+                }
+                if (isRev) u++;
+            }
+        }
+        return u;
+    }
+
+    function searchReverseG() {
+        const rIdx = parseInt(inputG.value) - 1;
+        const x = parseInt(rowLengthInput.value) || 2;
+        if (!currentNumbers.length) return alert("Chưa có dữ liệu!");
+        
+        const rows = [];
+        for (let i = 0; i < currentNumbers.length; i += x) rows.push(currentNumbers.slice(i, i + x));
+        
+        if (rIdx < 0 || rIdx >= rows.length) return alert("STT hàng không hợp lệ!");
+        
+        const targetRow = rows[rIdx];
+        highlightR = rIdx; 
+        highlightR1 = -1;
+        outputP.value = '';
+
+        for (let i = rIdx + 1; i < rows.length; i++) {
+            if (rows[i].length === x) {
+                let isAllReverse = true;
+                for (let c = 0; c < x; c++) {
+                    if ((targetRow[c] >= 5) === (rows[i][c] >= 5)) {
+                        isAllReverse = false;
+                        break;
+                    }
+                }
+                if (isAllReverse) {
+                    highlightR1 = i;
+                    outputP.value = i - rIdx;
+                    break;
+                }
+            }
+        }
+        if (highlightR1 === -1) alert("Không tìm thấy hàng R1 ngược hoàn toàn!");
+        refresh();
+    }
+
+    function render(x, k) {
+        resultGrid.innerHTML = ''; 
+        if (!currentNumbers.length) return;
+
+        const mode = localStorage.getItem('userMode') || 'stepK';
+        resultGrid.style.gridTemplateColumns = `var(--stt-width) var(--spacer-width) repeat(${x}, var(--cell-size))`;
+        
+        const rows = [];
+        for (let i = 0; i < currentNumbers.length; i += x) rows.push(currentNumbers.slice(i, i + x));
+        const marks = Array.from({length: rows.length}, () => Array(x).fill(''));
+        let count = 0;
+
+        if (mode === 'stepK') {
+            for (let r = 0; r < rows.length - k; r++) {
+                if (rows[r].length === x && rows[r+k].length === x) {
+                    let isRev = true;
+                    for (let c = 0; c < x; c++) { 
+                        if ((rows[r][c] >= 5) === (rows[r+k][c] >= 5)) { isRev = false; break; } 
+                    }
+                    if (isRev) { 
+                        count++; 
+                        for (let c = 0; c < x; c++) marks[r][c] = marks[r+k][c] = 'blink'; 
+                    }
+                }
+            }
+        }
+
+        const frag = document.createDocumentFragment();
+        rows.forEach((row, rIdx) => {
+            const stt = document.createElement('div'); 
+            stt.className = 'row-stt'; 
+            stt.textContent = rIdx + 1;
+            frag.appendChild(stt); 
+            frag.appendChild(document.createElement('div')); 
+
+            row.forEach((n, cIdx) => {
+                const box = document.createElement('div'); 
+                box.className = 'number-box'; 
+                box.textContent = n;
+                
+                // Quy tắc ưu tiên tô màu
+                if (rIdx === highlightR) {
+                    box.classList.add('row-r-base'); // Màu xanh da trời cho hàng R
+                } else if (rIdx === highlightR1) {
+                    box.classList.add('row-r1-found'); // Màu vàng cho hàng R1
+                } else if (marks[rIdx][cIdx] === 'blink') {
+                    box.classList.add('blink');
+                } else if (mode === 'big' && n >= 5) {
+                    box.classList.add('high');
+                } else if (mode === 'small' && n < 5) {
+                    box.classList.add('low');
+                }
+                frag.appendChild(box);
+            });
+            
+            for (let i = row.length; i < x; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'number-box';
+                empty.style.opacity = "0.2";
+                frag.appendChild(empty);
+            }
+        });
+        resultGrid.appendChild(frag);
+    }
+</script>
+</body>
+</html>
