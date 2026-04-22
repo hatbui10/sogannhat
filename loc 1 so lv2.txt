@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cyber Scan Clean</title>
+
+<style>
+:root {
+    --neon: #f1c40f;
+    --blue: #00d2ff;
+    --bg: #050505;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background: var(--bg);
+    color: #fff;
+    font-family: monospace;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.sticky-header {
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+    padding: 10px;
+    border-bottom: 1px solid #222;
+}
+
+.nav {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.btn {
+    flex: 1;
+    background: #111;
+    border: 1px solid var(--blue);
+    color: var(--blue);
+    padding: 10px 0;
+    text-align: center;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#n-input {
+    flex: 1;
+    background: #000;
+    border: 2px solid var(--neon);
+    color: var(--neon);
+    font-size: 26px;
+    text-align: center;
+    border-radius: 8px;
+    height: 50px;
+    width: 50px;
+}
+
+#n1-box {
+    width: 50px;
+    height: 50px;
+    border: 2px dashed var(--neon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--neon);
+}
+
+#list {
+    flex: 1;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    grid-auto-rows: 40px;
+    gap: 4px;
+    padding: 10px;
+}
+
+.c {
+    background: #111;
+    border: 1px solid #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    border-radius: 6px;
+}
+
+.match {
+    background: var(--neon) !important;
+    color: #000 !important;
+    font-weight: bold;
+    box-shadow: 0 0 10px var(--neon);
+}
+</style>
+</head>
+
+<body>
+
+<div class="sticky-header">
+    <div class="nav">
+        <label class="btn">FILE<input type="file" id="f" hidden accept=".txt"></label>
+        <div class="btn" onclick="undo()">UNDO</div>
+        <div class="btn" onclick="colorByN()">TÔ N</div>
+        <div class="btn" onclick="findPattern()">Ab</div>
+        <div class="btn" onclick="clearAll()" style="color:#ff4757;border-color:#ff4757">CLEAR</div>
+    </div>
+
+    <div class="input-row">
+        <input type="number" id="n-input" placeholder="NHẬP N">
+        <div id="n1-box">-</div>
+    </div>
+</div>
+
+<div id="list"></div>
+
+<script>
+const ni = document.getElementById('n-input');
+const n1 = document.getElementById('n1-box');
+const ls = document.getElementById('list');
+
+let digits = JSON.parse(localStorage.getItem('dg')) || [];
+let cur = localStorage.getItem('cn') || "";
+let hist = [];
+let cells = [];
+
+/* RENDER (đã tối ưu) */
+function render() {
+    ls.innerHTML = digits.map(d => `<div class="c" data-v="${d}">${d}</div>`).join('');
+    cells = ls.children; // cache DOM
+}
+
+/* TÔ N (không query lại DOM) */
+function colorByN() {
+    for (let el of cells) el.classList.remove('match');
+    if (!cur) return;
+
+    for (let el of cells) {
+        if (el.dataset.v == cur) el.classList.add('match');
+    }
+}
+
+/* LOGIC Ab (đã tối ưu) */
+function findPattern() {
+    for (let el of cells) el.classList.remove('match');
+
+    if (!cur || digits.length < 2) return;
+
+    let pattern = [];
+    let pos = [];
+
+    for (let i = 0; i < digits.length - 1; i++) {
+        if (digits[i] == cur) {
+            let C = digits[i+1];
+            pattern.push(C >= 5 ? "A" : "b");
+            pos.push(i);
+        }
+    }
+
+    for (let i = 0; i <= pattern.length - 6; i++) {
+        if (
+            pattern[i] === "A" &&
+            pattern[i+1] === "b" &&
+            pattern[i+2] === "A" &&
+            pattern[i+3] === "b" &&
+            pattern[i+4] === "A" &&
+            pattern[i+5] === "b"
+        ) {
+            for (let j = 0; j < 6; j++) {
+                let idx = pos[i + j];
+                if (cells[idx]) cells[idx].classList.add('match');
+                if (cells[idx+1]) cells[idx+1].classList.add('match');
+            }
+        }
+    }
+}
+
+/* LOAD FILE */
+document.getElementById('f').onchange = e => {
+    const r = new FileReader();
+    r.onload = () => {
+        digits = r.result.replace(/\D/g,'').split('');
+        localStorage.setItem('dg', JSON.stringify(digits));
+        render();
+    };
+    r.readAsText(e.target.files[0]);
+};
+
+/* INPUT */
+ni.oninput = () => {
+    if (ni.value !== "") {
+        hist.push(cur);
+        cur = ni.value;
+        n1.innerText = cur;
+        localStorage.setItem('cn', cur);
+        ni.value = "";
+        colorByN();
+    }
+};
+
+function undo() {
+    if (hist.length) {
+        cur = hist.pop();
+        n1.innerText = cur || "-";
+        colorByN();
+    }
+}
+
+function clearAll() {
+    if (confirm("Xoá sạch dữ liệu?")) {
+        localStorage.clear();
+        digits = [];
+        cur = "";
+        ls.innerHTML = "";
+        n1.innerText = "-";
+    }
+}
+
+window.onload = () => {
+    n1.innerText = cur || "-";
+    render();
+};
+</script>
+
+</body>
+</html>
