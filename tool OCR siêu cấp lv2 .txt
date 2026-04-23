@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR VN168 PRO - Xử lý 200+ ảnh</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        :root { --primary: #ff5c5c; --secondary: #27ae60; --bg: #0f0f0f; --text: #e0e0e0; --color-lon: yellow; --color-nho: #00e5ff; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; }
+        .container { max-width: 1000px; margin: auto; background: #1a1a1a; padding: 15px; border-radius: 10px; }
+        h2 { text-align: center; color: var(--primary); margin-top: 5px; }
+        
+        /* CSS cho hàng chọn File/Thư mục */
+        .upload-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .upload-box { 
+            flex: 1; border: 2px dashed #444; padding: 20px; text-align: center; 
+            cursor: pointer; background: #222; border-radius: 8px; font-size: 14px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .upload-box:hover { border-color: var(--primary); background: #2a2a2a; }
+        
+        #file-count { color: #f1c40f; font-weight: bold; display: block; text-align: center; margin: 10px 0; }
+        .progress { height: 15px; background: #333; border-radius: 8px; margin: 10px 0; display: none; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--secondary); width: 0%; transition: width 0.1s; }
+        .btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 15px; }
+        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-scan { background: #e74c3c; color: white; }
+        .btn-dl { background: #27ae60; color: white; }
+        .btn-img { background: #3498db; color: white; }
+        .btn-pdf { background: #9b59b6; color: white; }
+        
+        #tableCaptureArea { background: #000; padding: 10px; border-radius: 5px; }
+        #txtHorizontal { 
+            width: 100%; min-height: 80px; padding: 10px; background: #000; color: #00ff41; 
+            font-family: monospace; font-size: 20px; font-weight: bold; border: 1px solid #333;
+            white-space: pre-wrap; word-wrap: break-word; line-height: 1.4;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: var(--primary); color: white; padding: 8px; font-size: 14px; }
+        td { padding: 6px; text-align: center; border-bottom: 1px solid #333; font-family: monospace; font-size: 16px; }
+        .txt-lon { color: var(--color-lon); font-weight: bold; }
+        .txt-nho { color: var(--color-nho); font-weight: bold; }
+        #canvas-helper { display: none; }
+
+        @media print {
+            body { background: #000 !important; }
+            .container { background: #000 !important; max-width: 100% !important; border: none !important; }
+            .upload-row, .btns, .progress, #status, h2 { display: none !important; }
+            #tableCaptureArea { background: #000 !important; }
+            #txtHorizontal { border: 1px solid #fff !important; color: #00ff41 !important; }
+            td, th { border-bottom: 1px solid #444 !important; color: #fff !important; }
+            .txt-lon { color: yellow !important; }
+            .txt-nho { color: #00e5ff !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>VN168 - QUÉT SỐ LƯỢNG LỚN</h2>
+    
+    <div class="upload-row">
+        <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+            <b>🖼️ CHỌN ẢNH</b>
+            <small>(Nhiều file lẻ)</small>
+            <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+        </div>
+        <div class="upload-box" onclick="document.getElementById('folderInput').click()">
+            <b>📁 CHỌN THƯ MỤC</b>
+            <small>(Quét cả folder)</small>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
+        </div>
+    </div>
+
+    <span id="file-count">Chưa có ảnh nào</span>
+
+    <div class="btns">
+        <button id="scanBtn" class="btn-scan" disabled>BẮT ĐẦU QUÉT</button>
+        <button id="downloadBtn" class="btn-dl" disabled>TẢI FILE .TXT</button>
+        <button id="exportImgBtn" class="btn-img" disabled>XUẤT ẢNH HD</button>
+        <button id="pdfBtn" class="btn-pdf" disabled>XUẤT FILE PDF</button> 
+        <button onclick="location.reload()" style="background:#555; color:white;">XÓA HẾT</button>
+    </div>
+
+    <div class="progress" id="progressBox"><div class="progress-bar" id="progressBar"></div></div>
+    <div id="status" style="text-align:center; margin-bottom:10px; font-size: 14px;"></div>
+
+    <div id="tableCaptureArea">
+        <div id="txtHorizontal">Dãy số...</div>
+        <table>
+            <thead>
+                <tr><th>Kỳ xổ</th><th>Số</th><th>Lớn Nhỏ</th></tr>
+            </thead>
+            <tbody id="resultBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<canvas id="canvas-helper"></canvas>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const folderInput = document.getElementById('folderInput');
+    const fileCountText = document.getElementById('file-count');
+    const scanBtn = document.getElementById('scanBtn');
+    const resultBody = document.getElementById('resultBody');
+    const txtHorizontal = document.getElementById('txtHorizontal');
+    const progressBar = document.getElementById('progressBar');
+    const progressBox = document.getElementById('progressBox');
+    const status = document.getElementById('status');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const exportImgBtn = document.getElementById('exportImgBtn');
+    const pdfBtn = document.getElementById('pdfBtn');
+    const canvas = document.getElementById('canvas-helper');
+    const ctx = canvas.getContext('2d');
+
+    let allFiles = []; 
+    let finalData = [];
+
+    // Xử lý khi chọn File lẻ
+    fileInput.addEventListener('change', handleFiles);
+    // Xử lý khi chọn Thư mục
+    folderInput.addEventListener('change', handleFiles);
+
+    function handleFiles(e) {
+        const newFiles = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
+        if (newFiles.length > 0) {
+            allFiles = allFiles.concat(newFiles);
+            fileCountText.innerText = `Đã tích lũy: ${allFiles.length} ảnh`;
+            scanBtn.disabled = false;
+        }
+        e.target.value = ""; // Reset để có thể chọn lại cùng thư mục nếu cần
+    }
+
+    scanBtn.addEventListener('click', async () => {
+        if (allFiles.length === 0) return;
+
+        scanBtn.disabled = true;
+        progressBox.style.display = 'block';
+        finalData = [];
+        resultBody.innerHTML = "";
+
+        const worker = await Tesseract.createWorker({
+            cacheMethod: 'none',
+            logger: m => { if(m.status === 'recognizing') console.log(m.progress); }
+        });
+        await worker.loadLanguage('eng');
+        await worker.initialize('eng');
+
+        for (let i = 0; i < allFiles.length; i++) {
+            status.innerText = `Đang xử lý ${i + 1}/${allFiles.length}...`;
+            progressBar.style.width = ((i + 1) / allFiles.length) * 100 + '%';
+
+            try {
+                const imgData = await preprocessImage(allFiles[i]);
+                const { data: { text } } = await worker.recognize(imgData);
+                parseText(text);
+                URL.revokeObjectURL(imgData); 
+            } catch (err) {
+                console.error("Lỗi tại ảnh số " + i);
+            }
+        }
+
+        await worker.terminate();
+        finalData.sort((a, b) => b.kyXo.localeCompare(a.kyXo));
+        renderTable(); 
+        updateHorizontalData(); 
+
+        status.innerHTML = `<b style="color:#2ecc71">Xong! Tổng: ${finalData.length} kỳ</b>`;
+        downloadBtn.disabled = false;
+        exportImgBtn.disabled = false;
+        pdfBtn.disabled = false;
+    });
+
+    function preprocessImage(file) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.filter = 'grayscale(1) contrast(1.2)';
+                ctx.drawImage(img, 0, 0);
+                const data = canvas.toDataURL('image/jpeg', 0.7);
+                URL.revokeObjectURL(objectUrl); 
+                resolve(data);
+            };
+            img.src = objectUrl;
+        });
+    }
+
+    function parseText(text) {
+        const lines = text.split('\n');
+        lines.forEach(line => {
+            const kyXoMatch = line.match(/\d{10,}/);
+            if (kyXoMatch) {
+                const kyXo = kyXoMatch[0];
+                const sauKyXo = line.split(kyXo)[1] || "";
+                const numMatch = sauKyXo.match(/\d/);
+                if (numMatch) {
+                    const conSo = parseInt(numMatch[0]);
+                    let lonNho = (conSo >= 5) ? "Lớn" : "Nhỏ";
+                    if(!finalData.some(item => item.kyXo === kyXo)) {
+                        finalData.push({kyXo, conSo, lonNho});
+                    }
+                }
+            }
+        });
+    }
+
+    function renderTable() {
+        let html = "";
+        finalData.forEach(d => {
+            const colorClass = (d.lonNho === "Lớn") ? "txt-lon" : "txt-nho";
+            html += `<tr><td>${d.kyXo}</td><td class="${colorClass}">${d.conSo}</td><td class="${colorClass}">${d.lonNho}</td></tr>`;
+        });
+        resultBody.innerHTML = html;
+    }
+
+    function updateHorizontalData() {
+        const sortedData = [...finalData].sort((a, b) => a.kyXo.localeCompare(b.kyXo));
+        txtHorizontal.innerText = sortedData.map(item => item.conSo).join(" ");
+    }
+
+    downloadBtn.addEventListener('click', () => {
+        const content = txtHorizontal.innerText;
+        // Đếm số lượng chữ số thực tế (bỏ qua dấu cách)
+        const digitCount = content.replace(/\s/g, '').length;
+        
+        const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        // Tên file dạng: vn168 - [số chữ số].txt
+        a.download = `vn168 - ${digitCount}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 0);
+    });
+
+    exportImgBtn.addEventListener('click', () => {
+        status.innerText = "Đang vẽ ảnh...";
+        html2canvas(document.getElementById('tableCaptureArea'), {
+            scale: 2,
+            backgroundColor: "#000",
+            useCORS: true
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `VN168_Export.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            status.innerText = "✅ Xuất ảnh thành công!";
+        });
+    });
+
+    pdfBtn.addEventListener('click', () => {
+        window.print();
+    });
+</script>
+</body>
+</html>
