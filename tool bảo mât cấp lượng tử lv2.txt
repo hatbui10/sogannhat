@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KSS ULTIMATE - FULL SPECS V7</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root { --neon-blue: #00f3ff; --neon-pink: #ff00ff; --bg-color: #050505; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background-color: var(--bg-color); 
+            color: #fff; 
+            font-family: 'Segoe UI', sans-serif; 
+            margin: 0; 
+            padding: 30px 3px 20px 3px; 
+            display: flex; 
+            justify-content: center; 
+            min-height: 100vh; 
+        }
+
+        #loader {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); backdrop-filter: blur(15px);
+            z-index: 9999; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .spinner {
+            width: 60px; height: 60px; border: 6px solid #111; border-top: 6px solid var(--neon-blue);
+            border-radius: 50%; animation: spin 1s linear infinite; box-shadow: 0 0 20px var(--neon-blue);
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #loader p { margin-top: 25px; color: var(--neon-blue); font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 10px var(--neon-blue); }
+
+        .container { width: 100%; max-width: 480px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(25px); border: 1px solid rgba(0, 243, 255, 0.3); border-radius: 24px; padding: 20px; }
+        h2 { text-align: center; color: var(--neon-blue); text-shadow: 0 0 15px var(--neon-blue); text-transform: uppercase; font-size: 0.8rem; margin-bottom: 20px; letter-spacing: 2px; }
+        
+        .box { background: rgba(0, 0, 0, 0.7); border-radius: 15px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        label { display: block; font-size: 0.65rem; color: var(--neon-blue); margin-bottom: 10px; font-weight: bold; letter-spacing: 1px; }
+        
+        input, select, textarea { width: 100%; background: #111; border: 1px solid #333; border-radius: 10px; padding: 12px; color: #fff; font-size: 16px; outline: none; }
+        
+        .grid-select { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+        .item-select { 
+            position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; 
+            background: #1a1a1a; border: 1px solid #444; border-radius: 12px; cursor: pointer; 
+            transition: 0.2s; font-size: 1.4rem; color: #ccc; 
+        }
+        .item-select svg { width: 22px; height: 22px; stroke: #ccc; stroke-width: 2.2; fill: none; }
+        .badge { 
+            position: absolute; top: -5px; right: -5px; background: var(--neon-pink); color: white; 
+            font-size: 10px; width: 19px; height: 19px; border-radius: 50%; display: none; 
+            align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 0 10px var(--neon-pink); z-index: 10;
+        }
+        .item-select.active { border-color: var(--neon-pink); background: rgba(255, 0, 255, 0.1); transform: scale(1.05); color: var(--neon-pink); }
+        .item-select.active svg { stroke: var(--neon-pink); filter: drop-shadow(0 0 5px var(--neon-pink)); }
+
+        .color-wrapper { display: flex; align-items: center; gap: 20px; }
+        input[type="color"] { width: 55px; height: 55px; border-radius: 50%; border: 3px solid #fff; cursor: pointer; background: none; padding: 0; overflow: hidden; }
+
+        .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+        button { padding: 18px; border: none; border-radius: 12px; font-weight: bold; text-transform: uppercase; cursor: pointer; font-size: 0.9rem; transition: 0.3s; }
+        .btn-enc { background: var(--neon-blue); color: #000; box-shadow: 0 0 20px rgba(0, 243, 255, 0.4); }
+        .btn-dec { background: transparent; border: 2px solid var(--neon-pink); color: var(--neon-pink); }
+
+        textarea { margin-top: 20px; height: 120px; color: var(--neon-blue); border: 1px solid var(--neon-blue); background: #000; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div id="loader"><div class="spinner"></div><p id="loaderText">ĐANG XỬ LÝ...</p></div>
+
+<div class="container">
+    <h2>KSS OMNI PROTECT V7</h2>
+
+    <div class="box">
+        <label>01. TỆP TIN NGUỒN</label>
+        <input type="file" id="f">
+    </div>
+
+    <div class="box">
+        <label>02. CÂU HỎI BẢO MẬT (CHỌN 1)</label>
+        <select id="q" style="margin-bottom: 8px; color: var(--neon-blue);">
+            <option>Mật mã thời thơ ấu?</option>
+            <option>Tên người bạn ngưỡng mộ?</option>
+            <option>Địa danh muốn đến nhất?</option>
+            <option>Sự kiện quan trọng nhất?</option>
+            <option>Món quà ý nghĩa nhất?</option>
+            <option>Con số định mệnh?</option>
+            <option>Loài hoa yêu thích?</option>
+            <option>Từ mô tả bản thân?</option>
+            <option>Ước mơ lớn nhất?</option>
+            <option>Ký ức khó quên?</option>
+        </select>
+        <input type="text" id="a" placeholder="Trả lời...">
+    </div>
+
+    <div class="box">
+        <label>03. 12 CHỮ SỐ BẢO MẬT</label>
+        <input type="number" id="n" placeholder="Nhập 12 số..." oninput="if(value.length>12)value=value.slice(0,12)">
+    </div>
+
+    <div class="box">
+        <label>04. KÝ TỰ ĐẶC BIỆT (THỨ TỰ BẤM)</label>
+        <div class="grid-select" id="specGrid"></div>
+    </div>
+
+    <div class="box">
+        <label>05. 10 HÌNH VẼ (THỨ TỰ BẤM)</label>
+        <div class="grid-select" id="shapeGrid"></div>
+    </div>
+
+    <div class="box">
+        <label>06. 20 SOCIAL ICONS (THỨ TỰ BẤM)</label>
+        <div class="grid-select" id="iconGrid"></div>
+    </div>
+
+    <div class="box">
+        <label>07. MÃ MÀU BẢO MẬT (CHÌA KHÓA CUỐI)</label>
+        <div class="color-wrapper">
+            <input type="color" id="c" value="#00f3ff">
+            <span id="hexVal" style="font-family: monospace; font-weight: bold; font-size: 1.1rem; color: var(--neon-blue);">#00F3FF</span>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button id="btnEnc" class="btn-enc" onclick="triggerAction('enc')">MÃ HOÁ & TẢI XUỐNG</button>
+        <button id="btnDec" class="btn-dec" onclick="triggerAction('dec')">GIẢI MÃ DỮ LIỆU</button>
+        <button onclick="location.reload()" style="background:#111; color:#444; padding: 8px; font-size: 10px; border: 1px solid #222;">RESET</button>
+    </div>
+
+    <textarea id="o" readonly placeholder="Nội dung giải mã..."></textarea>
+</div>
+
+<script>
+    const shapeChaos = {0:'A#7zL', 1:'pQ!2n', 2:'b*3Ty', 3:'hZ^8j', 4:'qN~0g', 5:'rT$2v', 6:'xM*7z', 7:'nJ!5h', 8:'mP(0e', 9:'kL#6u'};
+    const iconChaos = {
+        0:'Sm!Le7@9kR', 1:'HeArT#2n&5', 2:'FiRe*3TyM1', 3:'StAr^8j4(E', 4:'LiKe~0gf+6',
+        5:'HaHa$2vB#9', 6:'AnGrY*7z@1', 7:'CrY!5h^4sD', 8:'SuPrI(0e&3', 9:'KiSs#6u+8j',
+        10:'GuN@1n$9mX', 11:'BoMb#4k*7p', 12:'ClOuD^2s&0', 13:'MoOn!8m#5v', 14:'SuN(3z+6fR',
+        15:'BiKe$9k^1j', 16:'CaR*0n#4mQ', 17:'PlAnE&7h@2', 18:'ShIp!5v^8r', 19:'KeY#1m@6nJ'
+    };
+    const specs = ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '=', '{', '}', '[', ']', ';', ':', '?', '/', '>', '<', '~', '|'];
+    const shapeSVGs = [
+        '<circle cx="12" cy="12" r="9"/>','<rect x="4" y="4" width="16" height="16"/>','<path d="M12 2 L22 20 L2 20 Z"/>','<path d="M12 2 L15 9 L22 9 L17 14 L19 21 L12 17 L5 21 L7 14 L2 9 L9 9 Z"/>','<ellipse cx="12" cy="12" rx="9" ry="5"/>',
+        '<path d="M3 12 h18 M12 3 v18"/>','<path d="M5 5 L19 19 M19 5 L5 19"/>','<circle cx="12" cy="12" r="4"/>','<path d="M12 21 a9 9 0 1 0 0 -18 v18"/>','<rect x="8" y="2" width="8" height="20" rx="2"/>'
+    ];
+    const emojis = ['😊','❤️','🔥','⭐','👍','😆','😡','😭','😲','😘','🔫','💣','☁️','🌙','☀️','🚲','🚗','✈️','🚢','🔑'];
+
+    let orderSpecs = [], orderShapes = [], orderIcons = [];
+
+    document.getElementById('c').oninput = function() {
+        document.getElementById('hexVal').innerText = this.value.toUpperCase();
+        document.getElementById('hexVal').style.color = this.value;
+    };
+
+    function updateBadges(containerId, targetArray, chaosData) {
+        const items = document.getElementById(containerId).children;
+        for (let i = 0; i < items.length; i++) {
+            let val;
+            if (chaosData) { val = chaosData[i]; } 
+            else { val = items[i].textContent.replace(/[0-9]/g, '').trim(); }
+            const orderIdx = targetArray.indexOf(val);
+            const badge = items[i].querySelector('.badge');
+            if (orderIdx > -1) {
+                badge.innerText = orderIdx + 1;
+                badge.style.display = 'flex';
+            } else { badge.style.display = 'none'; }
+        }
+    }
+
+    function createGrid(items, containerId, targetArray, chaosData, isEmoji) {
+        const grid = document.getElementById(containerId);
+        items.forEach((item, i) => {
+            const d = document.createElement('div'); d.className = 'item-select';
+            d.innerHTML = isEmoji ? item : `<svg viewBox="0 0 24 24">${item}</svg>`;
+            const b = document.createElement('div'); b.className = 'badge'; d.appendChild(b);
+            d.onclick = () => {
+                const val = chaosData ? chaosData[i] : item;
+                const idx = targetArray.indexOf(val);
+                if (idx > -1) { targetArray.splice(idx, 1); d.classList.remove('active'); } 
+                else { targetArray.push(val); d.classList.add('active'); }
+                updateBadges(containerId, targetArray, chaosData);
+            };
+            grid.appendChild(d);
+        });
+    }
+
+    createGrid(specs, 'specGrid', orderSpecs, null, true);
+    createGrid(shapeSVGs, 'shapeGrid', orderShapes, shapeChaos, false);
+    createGrid(emojis, 'iconGrid', orderIcons, iconChaos, true);
+
+    function triggerAction(mode) {
+        document.getElementById('loaderText').innerText = mode === 'enc' ? "HỆ THỐNG ĐANG MÃ HÓA..." : "HỆ THỐNG ĐANG GIẢI MÃ...";
+        document.getElementById('loader').style.display = 'flex';
+        setTimeout(() => { run(mode); }, 100);
+    }
+
+    async function run(m) {
+        const loader = document.getElementById('loader');
+        const file = document.getElementById('f').files[0];
+        const ans = document.getElementById('a').value;
+        const num = document.getElementById('n').value;
+        const hex = document.getElementById('c').value;
+        
+        if (!file || !ans || num.length < 12 || orderShapes.length === 0 || orderIcons.length === 0 || orderSpecs.length === 0) {
+            alert("Thiếu thông tin bảo mật!"); loader.style.display='none'; return;
+        }
+
+        const raw = ans + num + orderSpecs.join('') + orderShapes.join('') + orderIcons.join('') + hex;
+        const r = new FileReader();
+        r.onload = function(e) {
+            try {
+                const salt = CryptoJS.SHA512(raw.length.toString() + hex).toString();
+                const k = CryptoJS.PBKDF2(raw, salt, { keySize: 512/32, iterations: 100000, hasher: CryptoJS.algo.SHA512 }).toString();
+                if (m === 'enc') {
+                    const enc = CryptoJS.AES.encrypt(e.target.result, k).toString();
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(["KSS_V7|" + enc])); a.download = `SECURE_V7.txt`; a.click();
+                    location.reload();
+                } else {
+                    let data = e.target.result; if(data.startsWith("KSS_V7|")) data = data.split("|")[1];
+                    const dec = CryptoJS.AES.decrypt(data, k).toString(CryptoJS.enc.Utf8);
+                    if (!dec) throw new Error();
+                    document.getElementById('o').value = dec;
+                    loader.style.display='none';
+                }
+            } catch (err) { loader.style.display='none'; alert("Sai thông tin bảo mật!"); }
+        };
+        r.readAsText(file);
+    }
+</script>
+</body>
+</html>
