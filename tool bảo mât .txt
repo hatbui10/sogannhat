@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Shield Mobile</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ff;
+            --bg-color: #050505;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 30px 3px 20px 3px; /* Quy tắc 3 cạnh */
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 1.5rem;
+            color: var(--neon-blue);
+            text-shadow: 0 0 8px var(--neon-blue);
+            margin-bottom: 20px;
+        }
+
+        .section {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        label { display: block; margin-bottom: 5px; font-size: 0.85em; color: #aaa; }
+
+        input, select, textarea {
+            width: 100%;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 12px;
+            color: white;
+            box-sizing: border-box;
+            font-size: 16px; /* Chống zoom trên iPhone */
+        }
+
+        input:focus, select:focus {
+            border-color: var(--neon-blue);
+            outline: none;
+        }
+
+        /* 10 hình vẽ dạng lưới */
+        .shape-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .shape-item {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .shape-item svg { width: 24px; height: 24px; stroke: #666; stroke-width: 2; fill: none; }
+
+        .shape-item.selected {
+            border-color: var(--neon-pink);
+            background: rgba(255, 0, 255, 0.1);
+        }
+
+        .shape-item.selected svg { stroke: var(--neon-pink); }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .btn-enc { background: var(--neon-blue); color: #000; }
+        .btn-dec { background: transparent; border: 1px solid var(--neon-pink); color: var(--neon-pink); }
+
+        textarea { margin-top: 15px; height: 100px; font-size: 14px; }
+
+        /* Tối ưu riêng cho mobile */
+        @media (max-width: 400px) {
+            .shape-grid { grid-template-columns: repeat(4, 1fr); }
+            h2 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>CRYPTO SCANNER PRO</h2>
+
+    <div class="section">
+        <label>1. Chọn File</label>
+        <input type="file" id="fileInput">
+    </div>
+
+    <div class="section">
+        <label>2. Câu hỏi bảo mật (1 trong 10)</label>
+        <select id="question">
+            <option value="1">Biển số xe đầu tiên?</option>
+            <option value="2">Tên người bạn ghét nhất?</option>
+            <option value="3">Món ăn ám ảnh nhất?</option>
+            <option value="4">Số nhà cũ của bạn?</option>
+            <option value="5">Thần tượng thời thơ ấu?</option>
+            <option value="6">Mật khẩu máy tính đầu tiên?</option>
+            <option value="7">Ngày kỷ niệm bí mật?</option>
+            <option value="8">Tên con vật bạn sợ nhất?</option>
+            <option value="9">Màu sắc may mắn cá nhân?</option>
+            <option value="10">Biệt danh bí mật của bạn?</option>
+        </select>
+        <input type="text" id="answer" placeholder="Câu trả lời..." style="margin-top:8px">
+    </div>
+
+    <div class="section">
+        <div style="display:flex; gap:10px">
+            <div style="flex:2">
+                <label>3. 12 Chữ số</label>
+                <input type="number" id="digits" placeholder="12 số..." oninput="if(value.length>12)value=value.slice(0,12)">
+            </div>
+            <div style="flex:1">
+                <label>4. 3 Ký tự</label>
+                <input type="text" id="specials" maxlength="3" placeholder="@#!">
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <label>5. Chọn 1 trong 10 hình vẽ</label>
+        <div class="shape-grid" id="shapeGrid">
+            </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-enc" onclick="handleProcess('encrypt')">Mã hoá & Tải file</button>
+        <button class="btn-dec" onclick="handleProcess('decrypt')">Khôi phục dữ liệu</button>
+    </div>
+
+    <textarea id="output" placeholder="Nội dung file sau giải mã..." readonly></textarea>
+</div>
+
+<script>
+    let currentShape = '';
+    const shapes = [
+        '<circle cx="12" cy="12" r="9"/>',
+        '<rect x="4" y="4" width="16" height="16"/>',
+        '<polygon points="12,2 22,20 2,20"/>',
+        '<ellipse cx="12" cy="12" rx="9" ry="5"/>',
+        '<path d="M12 2 L15 9 L22 9 L17 14 L19 21 L12 17 L5 21 L7 14 L2 9 L9 9 Z"/>', // Star
+        '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+        '<circle cx="12" cy="12" r="4"/>',
+        '<path d="M3 12 h18 M12 3 v18"/>', // Cross
+        '<path d="M5 5 L19 19 M19 5 L5 19"/>', // X
+        '<path d="M12 21 a9 9 0 1 0 0 -18 v18"/>' // Semi-circle
+    ];
+
+    // Khởi tạo 10 hình vẽ
+    const grid = document.getElementById('shapeGrid');
+    shapes.forEach((s, i) => {
+        const div = document.createElement('div');
+        div.className = 'shape-item';
+        div.innerHTML = `<svg viewBox="0 0 24 24">${s}</svg>`;
+        div.onclick = () => {
+            currentShape = i;
+            document.querySelectorAll('.shape-item').forEach(el => el.classList.remove('selected'));
+            div.classList.add('selected');
+        };
+        grid.appendChild(div);
+    });
+
+    function resetForm() {
+        document.getElementById('fileInput').value = '';
+        document.getElementById('answer').value = '';
+        document.getElementById('digits').value = '';
+        document.getElementById('specials').value = '';
+        document.getElementById('question').selectedIndex = 0;
+        currentShape = '';
+        document.querySelectorAll('.shape-item').forEach(el => el.classList.remove('selected'));
+    }
+
+    async function handleProcess(mode) {
+        const file = document.getElementById('fileInput').files[0];
+        const ans = document.getElementById('answer').value;
+        const dig = document.getElementById('digits').value;
+        const spec = document.getElementById('specials').value;
+
+        if (!file || !ans || dig.length < 1 || currentShape === '') {
+            alert("Thiếu thông tin! Cần File + Trả lời + Số + Chọn hình.");
+            return;
+        }
+
+        const key = ans + dig + spec + currentShape;
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const data = e.target.result;
+            try {
+                if (mode === 'encrypt') {
+                    const encrypted = CryptoJS.AES.encrypt(data, key).toString();
+                    const blob = new Blob([encrypted], {type: 'text/plain'});
+                    const a = document.createElement('a');
+                    const rand = Math.floor(1000 + Math.random() * 9000);
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `SECURE_${rand}.txt`;
+                    a.click();
+                    
+                    // Reset ngay sau khi mã hóa
+                    resetForm();
+                    alert("Đã mã hóa và tải file! Form đã được dọn dẹp.");
+                } else {
+                    const decrypted = CryptoJS.AES.decrypt(data, key);
+                    const original = decrypted.toString(CryptoJS.enc.Utf8);
+                    if (!original) throw new Error();
+                    document.getElementById('output').value = original;
+                }
+            } catch (err) {
+                alert("Lỗi: Sai thông tin bảo mật hoặc file không đúng định dạng!");
+            }
+        };
+
+        reader.readAsText(file);
+    }
+</script>
+
+</body>
+</html>
