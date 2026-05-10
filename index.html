@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Mobile Lớn Nhỏ</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: #0b0e11; color: #e9ecef; 
+            display: flex; flex-direction: column; align-items: center; padding: 15px;
+        }
+        .app-container { width: 100%; max-width: 480px; }
+        
+        /* Màn hình nhập vốn */
+        .card { background: #1e2329; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        h2 { text-align: center; margin-bottom: 20px; color: #f0b90b; font-size: 1.4rem; }
+
+        /* Tiền dư & Thời gian */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-box { background: #2b3139; padding: 10px; border-radius: 12px; text-align: center; border: 1px solid #444; }
+        .stat-label { font-size: 0.75rem; color: #848e9c; display: block; }
+        .stat-value { font-size: 1.1rem; font-weight: bold; color: #f0b90b; }
+        .timer-value { font-size: 1.3rem; color: #f6465d; font-weight: 800; }
+
+        /* Input cược */
+        input { 
+            width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #444; 
+            background: #2b3139; color: #fff; font-size: 1.1rem; text-align: center; margin-bottom: 15px;
+        }
+
+        /* Nút cược nhanh */
+        .quick-bet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+        .btn-q { background: #474d57; color: #fff; border: none; padding: 10px 5px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+        .btn-q:active { background: #f0b90b; color: #000; }
+
+        /* Nút Lớn/Nhỏ */
+        .bet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn-main { padding: 18px; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: bold; color: #fff; text-transform: uppercase; }
+        .btn-big { background: #0ecb81; }
+        .btn-small { background: #f6465d; }
+        button:disabled { opacity: 0.4; filter: grayscale(1); }
+
+        /* Bảng lịch sử */
+        .history-card { background: #1e2329; border-radius: 16px; padding: 15px; width: 100%; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { color: #848e9c; padding-bottom: 10px; text-align: center; border-bottom: 1px solid #2b3139; }
+        td { padding: 12px 5px; text-align: center; border-bottom: 1px solid #2b3139; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+        .bg-big { background: rgba(14, 203, 129, 0.2); color: #0ecb81; }
+        .bg-small { background: rgba(246, 70, 93, 0.2); color: #f6465d; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="initSection" class="card">
+        <h2>THIẾT LẬP VỐN</h2>
+        <input type="text" id="initialCapital" placeholder="Nhập vốn (Vd: 1.000.000)" oninput="formatCurrency(this)">
+        <button class="btn-main btn-big" onclick="setInitialBalance()" style="width: 100%;">VÀO TRÒ CHƠI</button>
+    </div>
+
+    <div id="gameSection" style="display:none;">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span class="stat-label">SỐ DƯ (VNĐ)</span>
+                <span class="stat-value" id="balanceText">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">THỜI GIAN</span>
+                <span class="timer-value" id="timeLeft">30</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <input type="text" id="betAmount" placeholder="Số tiền cược" oninput="formatCurrency(this)">
+            
+            <div class="quick-bet">
+                <button class="btn-q" onclick="setBet(1000)">1k</button>
+                <button class="btn-q" onclick="setBet(3000)">3k</button>
+                <button class="btn-q" onclick="setBet(9000)">9k</button>
+                <button class="btn-q" onclick="setBet(27000)">27k</button>
+                <button class="btn-q" onclick="setBet(81000)">81k</button>
+                <button class="btn-q" onclick="setBet(162000)">162k</button>
+                <button class="btn-q" onclick="setBet(729000)">729k</button>
+                <button class="btn-q" onclick="setBet(0, true)">Xóa</button>
+            </div>
+
+            <div class="bet-actions">
+                <button class="btn-main btn-big" id="btnBig" onclick="placeBet('BIG')">LỚN</button>
+                <button class="btn-main btn-small" id="btnSmall" onclick="placeBet('SMALL')">NHỎ</button>
+            </div>
+            <p id="statusMsg" style="text-align:center; margin-top:15px; color:#f0b90b; font-size:0.9rem; min-height:1.2em;"></p>
+        </div>
+
+        <div class="history-card">
+            <h3 style="margin-bottom:15px; font-size:1rem;">Lịch sử kết quả</h3>
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Kỳ</th>
+                        <th>Số</th>
+                        <th>Kết quả</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    let balance = 0;
+    let timeLeft = 30;
+    let currentPeriod = 1;
+    let currentBet = { side: null, amount: 0 };
+    const winRate = 0.96;
+
+    function formatCurrency(input) {
+        let value = input.value.replace(/\D/g, "");
+        if (value === "") return;
+        input.value = Number(value).toLocaleString('vi-VN');
+    }
+
+    function setInitialBalance() {
+        let val = parseInt(document.getElementById('initialCapital').value.replace(/\./g, ""));
+        if (isNaN(val) || val < 1000) {
+            alert("Vui lòng nhập vốn tối thiểu 1.000 VNĐ");
+            return;
+        }
+        balance = val;
+        document.getElementById('initSection').style.display = 'none';
+        document.getElementById('gameSection').style.display = 'block';
+        updateBalanceDisplay();
+        startTimer();
+    }
+
+    function setBet(amount, clear = false) {
+        const input = document.getElementById('betAmount');
+        if (clear) { input.value = ""; return; }
+        input.value = amount.toLocaleString('vi-VN');
+    }
+
+    function updateBalanceDisplay() {
+        document.getElementById('balanceText').innerText = balance.toLocaleString('vi-VN');
+    }
+
+    function placeBet(side) {
+        let amount = parseInt((document.getElementById('betAmount').value || "0").replace(/\./g, ""));
+        if (amount < 1000) { alert("Tối thiểu 1.000 VNĐ"); return; }
+        if (amount > balance) { alert("Không đủ vốn!"); return; }
+
+        currentBet = { side: side, amount: amount };
+        document.getElementById('statusMsg').innerText = `Đã cược: ${side === 'BIG' ? 'LỚN' : 'NHỎ'} ${amount.toLocaleString('vi-VN')}`;
+        document.getElementById('btnBig').disabled = true;
+        document.getElementById('btnSmall').disabled = true;
+    }
+
+    function startTimer() {
+        let timerDisplay = document.getElementById('timeLeft');
+        let countdown = setInterval(() => {
+            timeLeft--;
+            timerDisplay.innerText = timeLeft < 10 ? "0" + timeLeft : timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                processResult();
+            }
+        }, 1000);
+    }
+
+    function processResult() {
+        const randomNumber = Math.floor(Math.random() * 10);
+        const resultSide = randomNumber >= 5 ? 'BIG' : 'SMALL';
+        
+        if (currentBet.side) {
+            if (currentBet.side === resultSide) {
+                let profit = currentBet.amount * winRate;
+                balance += profit;
+                alert(`Kỳ #${currentPeriod} Ra: ${randomNumber} (${resultSide})\nBẠN THẮNG: +${(profit + currentBet.amount).toLocaleString('vi-VN')} VNĐ`);
+            } else {
+                balance -= currentBet.amount;
+                alert(`Kỳ #${currentPeriod} Ra: ${randomNumber} (${resultSide})\nBẠN THUA: -${currentBet.amount.toLocaleString('vi-VN')} VNĐ`);
+            }
+        }
+
+        const tableBody = document.querySelector("#historyTable tbody");
+        const row = `<tr>
+            <td>#${currentPeriod}</td>
+            <td style="font-weight:bold; font-size:1.1rem;">${randomNumber}</td>
+            <td><span class="badge ${resultSide === 'BIG' ? 'bg-big' : 'bg-small'}">${resultSide === 'BIG' ? 'LỚN' : 'NHỎ'}</span></td>
+        </tr>`;
+        tableBody.insertAdjacentHTML('afterbegin', row);
+
+        // Giới hạn lịch sử 10 dòng cho gọn màn hình điện thoại
+        if(tableBody.rows.length > 10) tableBody.deleteRow(10);
+
+        currentPeriod++;
+        timeLeft = 30;
+        currentBet = { side: null, amount: 0 };
+        document.getElementById('statusMsg').innerText = "";
+        document.getElementById('btnBig').disabled = false;
+        document.getElementById('btnSmall').disabled = false;
+        updateBalanceDisplay();
+        startTimer();
+    }
+</script>
+
+</body>
+</html>
